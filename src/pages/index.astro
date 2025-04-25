@@ -1,0 +1,141 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ToolCard from '../components/ToolCard.astro';
+import SearchBar from '../components/SearchBar.astro';
+import { tools } from '../data/tools';
+import { categoryIcons } from '../data/categoryIcons';
+
+// 获取所有分类
+const categories = Array.from(new Set(tools.map(tool => tool.category)));
+---
+
+<Layout title="AI 工具导航">
+  <div class="relative min-h-screen">
+    <!-- Hero Section -->
+    <div class="relative overflow-hidden">
+      <div class="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800"></div>
+      <div class="relative pt-16 pb-12 sm:pt-24 sm:pb-20">
+        <div class="px-4 mx-auto max-w-7xl sm:px-6">
+          <div class="text-center">
+            <h1 class="text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-5xl md:text-6xl">
+              <span class="block">AI 工具导航</span>
+              <span class="block text-blue-600 dark:text-blue-500">发现最佳 AI 工具</span>
+            </h1>
+            <p class="max-w-md mx-auto mt-3 text-base text-gray-500 dark:text-gray-400 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
+              发现、探索和使用最新最全的 AI 工具，提升您的工作效率。
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 搜索栏 -->
+    <div id="search-container" class="sticky top-[72px] z-20 py-4 bg-gradient-to-b from-white dark:from-gray-900 to-transparent">
+      <SearchBar categories={categories} />
+    </div>
+
+    <!-- 工具列表 -->
+    <div class="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8 pb-12" id="tools-container">
+      {categories.map(category => (
+        <div class="category-container mt-12">
+          <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
+            <span class="text-3xl mr-2 bg-gray-100 dark:bg-gray-700 p-2 rounded-lg">{categoryIcons[category] || "📦"}</span>
+            <span class="border-b-2 border-blue-500 pb-1">{category}</span>
+          </h2>
+          <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {tools
+              .filter(tool => tool.category === category)
+              .map(tool => (
+                <ToolCard tool={tool} />
+              ))
+            }
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <!-- 无搜索结果提示 -->
+    <div id="no-results-message" class="text-center p-8 hidden">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">未找到相关工具</h3>
+      <p class="text-gray-600 dark:text-gray-400">请尝试使用其他关键词搜索</p>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const searchContainer = document.getElementById('search-container');
+    const heroSection = document.querySelector('.relative.overflow-hidden');
+    const noResultsMessage = document.getElementById('no-results-message');
+    const toolsContainer = document.getElementById('tools-container');
+    
+    // 确保无搜索结果提示在初始化时隐藏
+    if (noResultsMessage) {
+      noResultsMessage.classList.add('hidden');
+      noResultsMessage.style.display = 'none';
+    }
+    
+    // 确保工具容器在初始化时显示
+    if (toolsContainer) {
+      toolsContainer.style.display = 'block';
+    }
+    
+    if (searchContainer && heroSection) {
+      // 监听滚动事件
+      window.addEventListener('scroll', () => {
+        const heroHeight = heroSection.offsetHeight;
+        const scrollPosition = window.scrollY;
+        
+        // 当滚动超过英雄区域高度的30%时，将搜索框固定在顶部
+        if (scrollPosition > heroHeight * 0.3) {
+          searchContainer.classList.add('fixed-top');
+        } else {
+          searchContainer.classList.remove('fixed-top');
+        }
+      });
+    }
+    
+    // 调试信息
+    console.log('页面加载完成，工具卡片数量:', document.querySelectorAll('.tool-card-container').length);
+    
+    // 监听窗口大小变化，确保搜索功能在不同设备上正常工作
+    window.addEventListener('resize', () => {
+      // 触发一次搜索，确保在设备切换时正确显示结果
+      const searchInput = document.getElementById('search-input') as HTMLInputElement;
+      if (searchInput) {
+        const event = new Event('input', { bubbles: true });
+        searchInput.dispatchEvent(event);
+      }
+    });
+  });
+</script>
+
+<style>
+  /* 固定顶部搜索框样式 */
+  .fixed-top {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: white;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    z-index: 50;
+    padding: 1rem;
+    transition: all 0.3s ease;
+  }
+  
+  /* 暗色模式下的固定顶部搜索框样式 */
+  :global(.dark) .fixed-top {
+    background-color: #1f2937;
+  }
+  
+  /* 确保无结果消息在移动设备上正确显示 */
+  @media (max-width: 768px) {
+    #no-results-message {
+      margin-top: 2rem;
+    }
+  }
+</style> 

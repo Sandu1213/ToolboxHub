@@ -1,0 +1,65 @@
+---
+import type { Tool } from '../data/tools';
+
+interface Props {
+  tool: Tool;
+}
+
+const { tool } = Astro.props;
+// 从 URL 中提取域名
+const getDomain = (url: string) => {
+  try {
+    const domain = new URL(url).hostname;
+    return domain;
+  } catch (e) {
+    return url;
+  }
+};
+---
+
+<div 
+  class="tool-card-container block" 
+  data-name={tool.name} 
+  data-description={tool.description} 
+  data-category={tool.category}
+  data-tags={tool.tags?.join(',')}
+>
+  <a
+    href={tool.url}
+    target="_blank"
+    rel="noopener noreferrer"
+    class="block p-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200"
+  >
+    <div class="flex items-center space-x-4">
+      <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-lg">
+        <img src={`https://www.google.com/s2/favicons?domain=${getDomain(tool.url)}&sz=128`} class="w-8 h-8 object-contain card-icon" loading="lazy" alt={`${tool.name} 图标`} />
+      </div>
+      <div class="flex-1">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{tool.name}</h3>
+        <p class="text-gray-600 dark:text-gray-400 mb-2">{tool.description}</p>
+        {tool.tags && tool.tags.length > 0 && (
+          <div class="flex flex-wrap gap-2">
+            {tool.tags.map(tag => (
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  </a>
+</div>
+
+<!-- Add hidden debug info visible only in dev mode -->
+{import.meta.env.DEV && (
+  <div class="hidden">
+    <p>Data attributes for debugging:</p>
+    <ul>
+      <li>name: {tool.name}</li>
+      <li>description: {tool.description}</li>
+      <li>category: {tool.category}</li>
+      <li>tags: {tool.tags?.join(', ')}</li>
+    </ul>
+  </div>
+)} 
