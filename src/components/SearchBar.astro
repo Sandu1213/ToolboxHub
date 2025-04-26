@@ -66,7 +66,11 @@ const { categories = [
 </div>
 
 <script>
+  // 导入 Fuse.js
+  import Fuse from 'fuse.js';
+  
   let debounceTimer: number;
+  let fuse: any = null;
 
   document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('search-input') as HTMLInputElement;
@@ -98,6 +102,31 @@ const { categories = [
     const categoryContainers = document.querySelectorAll('.category-container');
     console.log('找到分类容器数量:', categoryContainers.length);
     
+    // 准备 Fuse.js 的数据
+    const toolsData = Array.from(toolCards).map(card => {
+      return {
+        element: card,
+        name: card.getAttribute('data-name') || '',
+        description: card.getAttribute('data-description') || '',
+        category: card.getAttribute('data-category') || '',
+        tags: card.getAttribute('data-tags') || ''
+      };
+    });
+    
+    // 初始化 Fuse.js
+    const fuseOptions = {
+      includeScore: true,
+      threshold: 0.3,
+      keys: [
+        'name',
+        'description',
+        'category',
+        'tags'
+      ]
+    };
+    
+    fuse = new Fuse(toolsData, fuseOptions);
+    
     const toggleClearButton = () => {
       if (searchInput.value) {
         clearButton?.classList.remove('hidden');
@@ -106,9 +135,8 @@ const { categories = [
       }
     };
 
-    const updateVisibility = (visibleCount: number, searchTerm: string) => {
-      // 检查是否为移动设备
-      //const isMobile = window.innerWidth < 768;
+    const updateVisibility = (visibleCards: Set<HTMLElement>, searchTerm: string) => {
+      const visibleCount = visibleCards.size;
       
       // 更新工具容器的可见性
       if (toolsContainer) {
@@ -126,57 +154,67 @@ const { categories = [
         }
       }
       
+      // 处理所有工具卡片的显示/隐藏
+      toolCards.forEach(card => {
+        if (visibleCards.has(card as HTMLElement)) {
+          (card as HTMLElement).style.display = 'block';
+        } else {
+          (card as HTMLElement).style.display = 'none';
+        }
+      });
+      
       // 处理分类容器的显示/隐藏
       categoryContainers.forEach(container => {
         const cards = container.querySelectorAll('.tool-card-container');
         let hasVisibleCards = false;
         
         cards.forEach(card => {
-          if ((card as HTMLElement).style.display !== 'none') {
+          if ((card as HTMLElement).style.display === 'block') {
             hasVisibleCards = true;
           }
         });
         
-        if (!hasVisibleCards) {
-          (container as HTMLElement).style.display = 'none';
-        } else {
-          (container as HTMLElement).style.display = 'block';
-        }
-         
+        // 只有当分类下有可见卡片时才显示该分类容器
+        (container as HTMLElement).style.display = hasVisibleCards ? 'block' : 'none';
       });
     };
     
     const performSearch = () => {
       const searchTerm = searchInput.value.trim().toLowerCase();
-      let visibleCount = 0;
+      const visibleCards = new Set<HTMLElement>();
       
       console.log('执行搜索，关键词:', searchTerm, '当前分类:', currentCategory);
       
-      toolCards.forEach((card) => {
-        const toolName = card.getAttribute('data-name')?.toLowerCase() || '';
-        const toolDescription = card.getAttribute('data-description')?.toLowerCase() || '';
-        const toolCategory = card.getAttribute('data-category')?.toLowerCase() || '';
-        const toolTags = card.getAttribute('data-tags')?.toLowerCase() || '';
+      if (searchTerm === '') {
+        // 如果搜索词为空，只根据分类筛选
+        toolsData.forEach(item => {
+          const matchesCategory = currentCategory === 'all' || 
+            item.category.toLowerCase() === currentCategory.toLowerCase();
+            
+          if (matchesCategory) {
+            visibleCards.add(item.element as HTMLElement);
+          }
+        });
+      } else {
+        // 使用 Fuse.js 进行搜索
+        const results = fuse.search(searchTerm);
+        console.log('Fuse.js 搜索结果:', results.length);
         
-        console.log('检查卡片:', toolName, '描述:', toolDescription, '分类:', toolCategory, '标签:', toolTags);
-        
-        const matchesSearch = searchTerm === '' || 
-          toolName.includes(searchTerm) || 
-          toolDescription.includes(searchTerm) || 
-          toolCategory.includes(searchTerm) ||
-          toolTags.includes(searchTerm);
-          
-        const matchesCategory = currentCategory === 'all' || toolCategory === currentCategory.toLowerCase();
-        
-        const isVisible = matchesSearch && matchesCategory;
-        (card as HTMLElement).style.display = isVisible ? 'block' : 'none';
-        
-        if (isVisible) visibleCount++;
-      });
+        // 过滤搜索结果，只保留匹配当前分类的结果
+        results.forEach(result => {
+          const item = result.item;
+          const matchesCategory = currentCategory === 'all' || 
+            item.category.toLowerCase() === currentCategory.toLowerCase();
+            
+          if (matchesCategory) {
+            visibleCards.add(item.element as HTMLElement);
+          }
+        });
+      }
       
-      console.log('搜索结果: 找到', visibleCount, '个匹配项');
+      console.log('搜索结果: 找到', visibleCards.size, '个匹配项');
       
-      updateVisibility(visibleCount, searchTerm);
+      updateVisibility(visibleCards, searchTerm);
     };
     
     const clearSearch = () => {
